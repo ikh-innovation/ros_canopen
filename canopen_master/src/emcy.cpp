@@ -125,10 +125,10 @@ void EMCYHandler::handleInit(LayerStatus &status){
     if(!error_register_.get(error_register)){
         status.error("Could not read error error_register");
         return;
-    }else if(error_register & 1){
-        ROSCANOPEN_ERROR("canopen_master", "error register: " << int(error_register));
-        status.error("Node has emergency error");
-        return;
+    // }else if(error_register & 1){
+    //     ROSCANOPEN_ERROR("canopen_master", "error register: " << int(error_register));
+    //     status.error("Node has emergency error");
+    //     return;
     }
 
     resetErrors(status);

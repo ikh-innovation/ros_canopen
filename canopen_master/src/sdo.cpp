@@ -1,5 +1,5 @@
 #include <canopen_master/canopen.h>
-
+#include "iostream"
 using namespace canopen;
 
 const uint8_t COMMAND_MASK =  (1<<7) | (1<<6) | (1<<5);

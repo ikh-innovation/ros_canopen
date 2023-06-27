@@ -38,6 +38,9 @@ public:
 
 template<typename WrappedInterface> class ThreadedInterface : public WrappedInterface{
     std::shared_ptr<boost::thread> thread_;
+    SettingsConstSharedPtr settings_;
+    std::string device_;
+    bool loopback_;
     void run_thread(){
         WrappedInterface::run();
     }
@@ -61,6 +64,9 @@ public:
         #pragma GCC diagnostic pop
     }
     bool init(const std::string &device, bool loopback, SettingsConstSharedPtr settings) override {
+        device_ =  device;
+        loopback_ = loopback;
+        settings_ = settings;
         if(!thread_ && WrappedInterface::init(device, loopback, settings)){
             StateWaiter waiter(this);
             thread_.reset(new boost::thread(&ThreadedInterface::run_thread, this));
@@ -77,6 +83,10 @@ public:
         if(thread_){
             thread_->join();
         }
+    }
+    virtual bool recover(){
+        shutdown();
+        return init(device_,loopback_,settings_);
     }
     virtual ~ThreadedInterface() {
         shutdown_internal();

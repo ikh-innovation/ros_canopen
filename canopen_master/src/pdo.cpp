@@ -1,5 +1,5 @@
 #include <canopen_master/canopen.h>
-
+#include "iostream"
 using namespace canopen;
 
 #pragma pack(push) /* push current alignment to stack */
@@ -66,24 +66,41 @@ bool check_com_changed(const ObjectDict &dict, const uint16_t com_id){
 
 bool check_map_changed(const uint8_t &num, const ObjectDict &dict, const uint16_t &map_index){
     bool map_changed = false;
-
     // check if mapping has to be set
     if(num <= 0x40){
-        for(uint8_t sub = 1; sub <=num ; ++sub){
+        if (num != 0)
+        {
+            for(uint8_t sub = 1; sub <=num ; ++sub){
+                try{
+                    if(!dict(map_index,sub).init_val.is_empty()){
+                        map_changed = true;
+                        break;
+                    }
+                }
+                catch (std::out_of_range) {}
+            }
+        }
+        else
+        {
             try{
-                if(!dict(map_index,sub).init_val.is_empty()){
+                if(!dict(map_index,0).init_val.is_empty()){
                     map_changed = true;
-                    break;
                 }
             }
-            catch (std::out_of_range) {}
+            catch (std::out_of_range) {}            
         }
+
     }else{
         map_changed = dict( map_index ,0 ).init_val.is_empty();
     }
     return map_changed;
 }
 void PDOMapper::PDO::parse_and_set_mapping(const ObjectStorageSharedPtr &storage, const uint16_t &com_index, const uint16_t &map_index, const bool &read, const bool &write){
+    char hex_string[20];
+    // std::sprintf(hex_string, "%X", com_index); 
+    // std::cout << hex_string << std::endl;    
+    // std::sprintf(hex_string, "%X", map_index); 
+    // std::cout << hex_string << std::endl;
 
     const canopen::ObjectDict & dict = *storage->dict_;
 
@@ -97,57 +114,65 @@ void PDOMapper::PDO::parse_and_set_mapping(const ObjectStorageSharedPtr &storage
     }catch(...){
         map_num = 0;
     }
-
     bool map_changed = check_map_changed(map_num, dict, map_index);
-
     // disable PDO if needed
     ObjectStorage::Entry<uint32_t> cob_id;
     storage->entry(cob_id, com_index, SUB_COM_COB_ID);
 
-    bool com_changed = check_com_changed(dict, map_index);
+    bool com_changed = check_com_changed(dict, com_index);
     if((map_changed || com_changed) && cob_id.desc().writable){
         cob_id.set(cob_id.get() | PDOid::INVALID_MASK);
     }
-    if(map_num > 0 && map_num <= 0x40){ // actual mapping
+    if(map_num >= 0 && map_num <= 0x40){ // actual mapping
         if(map_changed){
             num_entry.set(0);
         }
 
         frame.dlc = 0;
-        for(uint8_t sub = 1; sub <=map_num; ++sub){
-            ObjectStorage::Entry<uint32_t> mapentry;
-            storage->entry(mapentry, map_index, sub);
-            const HoldAny init = dict(map_index ,sub).init_val;
-            if(!init.is_empty()) mapentry.set(init.get<uint32_t>());
-
-            PDOmap param(mapentry.get_cached());
-            BufferSharedPtr b = std::make_shared<Buffer>(param.length/8);
-            if(param.index < 0x1000){
-                // TODO: check DummyUsage
-            }else{
-                ObjectStorage::ReadFunc rd;
-                ObjectStorage::WriteFunc wd;
-
-                if(read){
-                  rd = std::bind<void(Buffer::*)(const canopen::ObjectDict::Entry&, String&)>(&Buffer::read, b.get(), std::placeholders::_1, std::placeholders::_2);
-                }
-                if(read || write)
+        if (map_num >= 0x1)
+        {
+            for(uint8_t sub = 1; sub <=map_num; ++sub){
+                ObjectStorage::Entry<uint32_t> mapentry;
+                storage->entry(mapentry, map_index, sub);
+                const HoldAny init = dict(map_index ,sub).init_val;
+                if(!init.is_empty()) 
                 {
-                    wd = std::bind<void(Buffer::*)(const canopen::ObjectDict::Entry&, const String&)>(&Buffer::write, b.get(), std::placeholders::_1, std::placeholders::_2);
-                    size_t l = storage->map(param.index, param.sub_index, rd, wd);
-                    assert(l  == param.length/8);
+                    mapentry.set(init.get<uint32_t>());
+                    char hex_string[20];
+                    // std::sprintf(hex_string, "%X", init.get<uint32_t>()); 
+                    // std::cout << hex_string << std::endl;    
                 }
-            }
+                PDOmap param(mapentry.get_cached());
+                BufferSharedPtr b = std::make_shared<Buffer>(param.length/8);
+                if(param.index < 0x1000){
+                    // TODO: check DummyUsage
+                }else{
+                    ObjectStorage::ReadFunc rd;
+                    ObjectStorage::WriteFunc wd;
 
-            frame.dlc += b->size;
-            assert( frame.dlc <= 8 );
-            b->clean();
-            buffers.push_back(b);
+                    if(read){
+                    rd = std::bind<void(Buffer::*)(const canopen::ObjectDict::Entry&, String&)>(&Buffer::read, b.get(), std::placeholders::_1, std::placeholders::_2);
+                    }
+                    if(read || write)
+                    {
+                        wd = std::bind<void(Buffer::*)(const canopen::ObjectDict::Entry&, const String&)>(&Buffer::write, b.get(), std::placeholders::_1, std::placeholders::_2);
+                        size_t l = storage->map(param.index, param.sub_index, rd, wd);
+                        assert(l  == param.length/8);
+                    }
+                }
+
+                frame.dlc += b->size;
+                assert( frame.dlc <= 8 );
+                b->clean();
+                buffers.push_back(b);
+            }
         }
     }
-    if(com_changed){
+    if(com_changed && (map_num != 0))
+    {
         uint8_t subs = dict(com_index, SUB_COM_NUM).value().get<uint8_t>();
-        for(uint8_t i = SUB_COM_NUM+1; i <= subs; ++i){
+        for(uint8_t i = SUB_COM_NUM+1; i <= subs; ++i)
+        {
             if(i == SUB_COM_COB_ID || i == SUB_COM_RESERVED) continue;
             try{
                 storage->init(ObjectDict::Key(com_index, i));
@@ -157,12 +182,11 @@ void PDOMapper::PDO::parse_and_set_mapping(const ObjectStorageSharedPtr &storage
             }
         }
     }
-    if(map_changed){
+    if(map_changed && (map_num != 0)){
         num_entry.set(map_num);
     }
-    if((com_changed || map_changed) && cob_id.desc().writable){
+    if((com_changed || map_changed) && cob_id.desc().writable && (map_num != 0)){
         storage->init(ObjectDict::Key(com_index, SUB_COM_COB_ID));
-
         cob_id.set(NodeIdOffset<uint32_t>::apply(dict(com_index, SUB_COM_COB_ID).value(), storage->node_id_));
     }
 

@@ -16,7 +16,7 @@ class InterfaceMapping {
 public:
     InterfaceMapping(){
         mapping_.insert(bimap_type::value_type("hardware_interface::PositionJointInterface" ,canopen::MotorBase::Profiled_Position));
-        mapping_.insert(bimap_type::value_type("hardware_interface::PositionJointInterface" ,canopen::MotorBase::Interpolated_Position));
+        // mapping_.insert(bimap_type::value_type("hardware_interface::PositionJointInterface" ,canopen::MotorBase::Interpolated_Position));
         mapping_.insert(bimap_type::value_type("hardware_interface::PositionJointInterface" ,canopen::MotorBase::Cyclic_Synchronous_Position));
 
         mapping_.insert(bimap_type::value_type("hardware_interface::VelocityJointInterface" ,canopen::MotorBase::Velocity));

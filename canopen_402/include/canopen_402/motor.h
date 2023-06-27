@@ -206,7 +206,7 @@ typedef ModeForwardHelper<MotorBase::Cyclic_Synchronous_Position, int32_t, 0x607
 typedef ModeForwardHelper<MotorBase::Cyclic_Synchronous_Velocity, int32_t, 0x60FF, 0, 0> CyclicSynchronousVelocityMode;
 typedef ModeForwardHelper<MotorBase::Cyclic_Synchronous_Torque, int16_t, 0x6071, 0, 0> CyclicSynchronousTorqueMode;
 typedef ModeForwardHelper<MotorBase::Velocity, int16_t, 0x6042, 0, (1<<Command402::CW_Operation_mode_specific0)|(1<<Command402::CW_Operation_mode_specific1)|(1<<Command402::CW_Operation_mode_specific2)> VelocityMode;
-typedef ModeForwardHelper<MotorBase::Interpolated_Position, int32_t, 0x60C1, 0x01, (1<<Command402::CW_Operation_mode_specific0)> InterpolatedPositionMode;
+// typedef ModeForwardHelper<MotorBase::Interpolated_Position, int32_t, 0x60C1, 0x01, (1<<Command402::CW_Operation_mode_specific0)> InterpolatedPositionMode;
 
 class ProfiledPositionMode : public ModeTargetHelper<int32_t> {
     canopen::ObjectStorage::Entry<int32_t> target_position_;
@@ -327,7 +327,7 @@ public:
         registerMode<ProfiledVelocityMode> (MotorBase::Profiled_Velocity, storage);
         registerMode<ProfiledTorqueMode> (MotorBase::Profiled_Torque, storage);
         registerMode<DefaultHomingMode> (MotorBase::Homing, storage);
-        registerMode<InterpolatedPositionMode> (MotorBase::Interpolated_Position, storage);
+        // registerMode<InterpolatedPositionMode> (MotorBase::Interpolated_Position, storage);
         registerMode<CyclicSynchronousPositionMode> (MotorBase::Cyclic_Synchronous_Position, storage);
         registerMode<CyclicSynchronousVelocityMode> (MotorBase::Cyclic_Synchronous_Velocity, storage);
         registerMode<CyclicSynchronousTorqueMode> (MotorBase::Cyclic_Synchronous_Torque, storage);

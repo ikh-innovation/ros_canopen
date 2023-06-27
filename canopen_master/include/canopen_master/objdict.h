@@ -13,7 +13,6 @@
 #include <typeinfo>
 #include <vector>
 #include "exceptions.h"
-
 namespace canopen{
 
 class TypeGuard{

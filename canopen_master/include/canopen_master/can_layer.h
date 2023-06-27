@@ -4,6 +4,7 @@
 #include <socketcan_interface/threading.h>
 #include "layer.h"
 #include <socketcan_interface/string.h>
+#include "iostream"
 
 namespace canopen{
 
@@ -31,12 +32,21 @@ public:
 
     virtual void handleRead(LayerStatus &status, const LayerState &current_state) {
         if(current_state > Init){
-            if(!driver_->getState().isReady()) status.error("CAN not ready");
+            if(!driver_->getState().isReady())
+            {
+                status.error("CAN not ready");
+                driver_->recover(); 
+            }
+            
         }
     }
     virtual void handleWrite(LayerStatus &status, const LayerState &current_state) {
         if(current_state > Init){
-            if(!driver_->getState().isReady()) status.error("CAN not ready");
+            if(!driver_->getState().isReady())
+            {
+                status.error("CAN not ready");
+                driver_->recover(); 
+            }        
         }
     }
 

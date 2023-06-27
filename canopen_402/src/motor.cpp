@@ -1,5 +1,6 @@
 #include <canopen_402/motor.h>
 #include <boost/thread/reverse_lock.hpp>
+#include "iostream"
 
 namespace canopen
 {
@@ -196,7 +197,7 @@ bool DefaultHomingMode::executeHoming(canopen::LayerStatus &status) {
         return true;
     }
 
-    time_point prepare_time = get_abs_time(boost::chrono::seconds(1));
+    time_point prepare_time = get_abs_time(boost::chrono::seconds(3));
     // ensure homing is not running
     boost::mutex::scoped_lock lock(mutex_);
     if(!cond_.wait_until(lock, prepare_time, masked_status_not_equal<MASK_Error | MASK_Reached, 0> (status_))){
@@ -216,10 +217,10 @@ bool DefaultHomingMode::executeHoming(canopen::LayerStatus &status) {
         return error(status, "homing error at start");
     }
 
-    time_point finish_time = get_abs_time(boost::chrono::seconds(10)); //
+    time_point finish_time = get_abs_time(boost::chrono::seconds(120)); //
 
     // wait for attained
-    if(!cond_.wait_until(lock, finish_time, masked_status_not_equal<MASK_Error | MASK_Attained, 0> (status_))){
+    if(!cond_.wait_until(lock, finish_time, masked_status_not_equal<MASK_Error | MASK_Attained | MASK_Reached, 0> (status_))){
         return error(status, "homing not attained");
     }
     if(status_ & MASK_Error){
@@ -227,14 +228,15 @@ bool DefaultHomingMode::executeHoming(canopen::LayerStatus &status) {
     }
 
     // wait for motion stop
-    if(!cond_.wait_until(lock, finish_time, masked_status_not_equal<MASK_Error | MASK_Reached, 0> (status_))){
+    if(!cond_.wait_until(lock, finish_time, masked_status_not_equal<MASK_Error | MASK_Reached | MASK_Attained, 0> (status_))){
         return error(status, "homing did not stop");
     }
     if(status_ & MASK_Error){
         return error(status, "homing error during stop");
     }
 
-    if((status_ & MASK_Reached) && (status_ & MASK_Attained)){
+    if((status_ & MASK_Reached) || (status_ & MASK_Attained)){
+        std::cout << status_ << std::endl;
         execute_ = false;
         return true;
     }

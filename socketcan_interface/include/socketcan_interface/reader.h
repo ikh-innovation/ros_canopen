@@ -3,7 +3,7 @@
 
 #include <socketcan_interface/interface.h>
 #include <deque>
-
+#include "iostream"
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/chrono.hpp>
@@ -28,6 +28,7 @@ class BufferedReader {
     }
     void handleFrame(const can::Frame & msg){
         boost::mutex::scoped_lock lock(mutex_);
+        enabled_ = true ; 
         if(enabled_){
             buffer_.push_back(msg);
             trim();

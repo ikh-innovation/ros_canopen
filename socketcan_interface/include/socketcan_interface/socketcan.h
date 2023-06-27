@@ -14,6 +14,7 @@
 #include <linux/can/error.h>
 
 #include <cstring>
+#include "iostream"
 
 #include <socketcan_interface/dispatcher.h>
 #include <socketcan_interface/string.h>
@@ -135,7 +136,7 @@ protected:
 
     bool init(const std::string &device, bool loopback, can_err_mask_t error_mask, can_err_mask_t fatal_error_mask) {
         State s = getState();
-        if(s.driver_state == State::closed){
+        if ((s.driver_state == State::closed) || (s.driver_state == State::open)) {
             sc_ = 0;
             device_ = device;
             loopback_ = loopback;
@@ -200,6 +201,7 @@ protected:
             setInternalError(0);
             setDriverState(State::open);
             sc_ = sc;
+            setDriverState(State::ready);
             return true;
         }
         return getState().isReady();
